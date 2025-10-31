@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.coverage
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Streamlit / App logs
+.logs/
+.streamlit/
+
+# Environment files (secrets)
+.env
+.env.*
+
+# Node (just in case)
+node_modules/

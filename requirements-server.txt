@@ -1,0 +1,9 @@
+vllm
+causal_conv1d
+transformers>4.53,<4.54
+timm
+mamba-ssm==2.2.5
+accelerate
+open_clip_torch
+numpy
+pillow
