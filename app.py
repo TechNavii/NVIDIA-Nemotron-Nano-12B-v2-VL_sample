@@ -281,6 +281,24 @@ def main():
     st.set_page_config(page_title="Nemotron-Nano-VL GUI", page_icon="🖼️")
     st.title("NVIDIA Nemotron Nano VL 12B v2 FP8 — GUI")
 
+    # Handle clear requests early so widgets pick up defaults
+    if st.session_state.get("_do_clear", False):
+        for k in [
+            "image_uploader",
+            "pdf_uploader",
+            "video_uploader",
+            "video_remote_url",
+            "url_remote",
+            "video_pass_through",
+            "url_pass",
+            "user_prompt",
+            "system_prompt",
+            "input_mode",
+        ]:
+            if k in st.session_state:
+                del st.session_state[k]
+        st.session_state["_do_clear"] = False
+
     with st.sidebar:
         st.header("Backend")
         backend = st.selectbox(
@@ -415,7 +433,7 @@ def main():
             "Tips\n- Use vLLM OpenAI server for local inference.\n- For vLLM, any non-empty API key is typically accepted.\n- PDFs and videos are pre-processed into images by default."
         )
     st.subheader("Input")
-    input_mode = st.selectbox("Input Type", ["Image", "PDF", "Video", "URL"], index=0)
+    input_mode = st.selectbox("Input Type", ["Image", "PDF", "Video", "URL"], index=0, key="input_mode")
 
     uploaded = None
     remote_url = None
@@ -428,27 +446,30 @@ def main():
             "Upload image(s) (PNG/JPG)",
             type=["png", "jpg", "jpeg"],
             accept_multiple_files=True,
+            key="image_uploader",
         ) 
     elif input_mode == "PDF":
-        uploaded = st.file_uploader("Upload PDF", type=["pdf"]) 
+        uploaded = st.file_uploader("Upload PDF", type=["pdf"], key="pdf_uploader") 
         max_pages = st.slider("Max pages", 1, 12, min(MAX_PDF_PAGES, 12))
     elif input_mode == "Video":
-        uploaded = st.file_uploader("Upload video (MP4/AVI/MOV)", type=["mp4", "mov", "avi", "mkv"]) 
+        uploaded = st.file_uploader("Upload video (MP4/AVI/MOV)", type=["mp4", "mov", "avi", "mkv"], key="video_uploader") 
         max_frames = st.slider("Frames to sample", 2, 24, min(MAX_VIDEO_FRAMES, 12))
-        pass_through = st.checkbox("Send as video_url (experimental)", value=False)
-        remote_url = st.text_input("Or remote video URL (http/https)")
+        pass_through = st.checkbox("Send as video_url (experimental)", value=False, key="video_pass_through")
+        remote_url = st.text_input("Or remote video URL (http/https)", key="video_remote_url")
         # If reasoning is explicitly enabled, avoid video_url to prevent server errors.
         if 'reasoning_mode' in locals() and reasoning_mode.startswith("Enable") and pass_through:
             st.warning("Reasoning is not supported with video_url. Falling back to frame extraction.")
             pass_through = False
     elif input_mode == "URL":
-        remote_url = st.text_input("Remote media URL (image/pdf/video)")
+        remote_url = st.text_input("Remote media URL (image/pdf/video)", key="url_remote")
         url_pass_through = st.checkbox(
             "Pass URL to backend (video_url, no download)", value=False,
-            help="If enabled, the URL is sent directly to the backend as a video_url. Useful when sites block downloads.")
+            help="If enabled, the URL is sent directly to the backend as a video_url. Useful when sites block downloads.",
+            key="url_pass",
+        )
 
-    user_prompt = st.text_area("Prompt", placeholder="Ask about the content…")
-    system_prompt = st.text_area("System Prompt (optional)", placeholder="You are a helpful vision assistant.")
+    user_prompt = st.text_area("Prompt", key="user_prompt", placeholder="Ask about the content…")
+    system_prompt = st.text_area("System Prompt (optional)", key="system_prompt", placeholder="You are a helpful vision assistant.")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -457,7 +478,14 @@ def main():
         clear_btn = st.button("Clear")
 
     if clear_btn:
-        st.experimental_rerun()
+        st.session_state["_do_clear"] = True
+        try:
+            st.rerun()
+        except Exception:
+            try:
+                st.experimental_rerun()
+            except Exception:
+                pass
 
     previews: List[Image.Image] = []
     b64_urls: List[str] = []
